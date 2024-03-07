@@ -102,12 +102,13 @@ class QuantizationLayer(torch.nn.Module):
         self.eps = eps
 
         embed = torch.randn(latent_dimension, code_book_size)
-        self.register_buffer("embed", embed)
+        self.embed = torch.nn.Parameter(embed, requires_grad=True)
+        # self.register_buffer("embed", embed)
         self.register_buffer("cluster_size", torch.zeros(code_book_size))
         self.register_buffer("embed_avg", embed.clone())
 
     def forward(self, x, count_low_usage = False):
-        x = x.permute(0, 2, 3, 1).contiguous()
+        x = x.permute(0, 2, 3, 1).contiguous() #(B, H, W, C)
         flatten = x.reshape(-1, self.dim)
         dist = (
             flatten.pow(2).sum(1, keepdim=True)
@@ -145,8 +146,7 @@ class QuantizationLayer(torch.nn.Module):
             self.embed.data.copy_(embed_normalized)
 
         diff = quantize.permute(0, 3, 1, 2)
-        # quantize = (x + (quantize - x).detach()).permute(0, 3, 1, 2)
-        quantize = (x + (quantize - x).detach()).permute(0, 3, 1, 2)
+        quantize = (x + (quantize - x).detach()).permute(0, 3, 1, 2) #back to (B, C, H, W)
         return quantize, diff
     def embed_code(self, embed_id):
         return F.embedding(embed_id, self.embed.transpose(0, 1))

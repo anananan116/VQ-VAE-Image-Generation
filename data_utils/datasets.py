@@ -1,21 +1,14 @@
 from torch.utils.data import Dataset
 from PIL import Image
 from tqdm import tqdm
-import os
-import pickle
+import torch
 class CelebADataset(Dataset):
     def __init__(self, image_files, transform=None):
         self.transform = transform
-        # Preload images
-        if (os.path.exists('data_utils/raw_data/celeba_preprocessed.pkl')):
-            with open('data_utils/raw_data/celeba_preprocessed.pkl', 'rb') as f:
-                self.images = pickle.load(f)
-        else:
-            self.images = []
-            for image_file in tqdm(image_files):
-                self.images.append(self.load_image(image_file))
-            with open('data_utils/raw_data/celeba_preprocessed.pkl', 'wb') as f:
-                pickle.dump(self.images, f)
+        self.images = []
+        for image_file in tqdm(image_files):
+            self.images.append(self.load_image(image_file))
+        self.images = torch.tensor(self.images)
         
     def load_image(self, file):
         with Image.open(file) as img:

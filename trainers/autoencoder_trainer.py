@@ -5,7 +5,7 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import os
 
-def vae_loss(recon_x, x, z, z_q, beta=0.1):
+def vae_loss(recon_x, x, z, z_q, beta=0.2):
     rec_loss = torch.nn.functional.mse_loss(recon_x, x, reduction='mean')
     quantization_loss = torch.nn.functional.mse_loss(z.detach(), z_q, reduction='mean') + beta * torch.nn.functional.mse_loss(z, z_q.detach(), reduction='mean')
     return rec_loss + quantization_loss, rec_loss, quantization_loss
@@ -21,12 +21,14 @@ class VQVAE_Trainer():
         self.optimizer = Adagrad(model.parameters(), lr=config['lr'])
         self.device = config['device']
         self.count_low_usage = config['count_low_usage']
-        self.writer = SummaryWriter(log_dir='./logs')
         self.best_loss = float('inf')
         self.early_stop_patience = config['early_stop_patience']
         self.patience_counter = 0
         self.epochs = config['epochs']
         self.lr = config['lr']
+        self.beta = config['beta']
+        self.exp_id = config['experiment_id']
+        self.writer = SummaryWriter(log_dir=f'./logs/exp{self.exp_id}/')
 
     def train(self, train_loader, validation_loader):
         self.scheduler = CosineAnnealingLR(self.optimizer, T_max=self.epochs * len(train_loader), eta_min=self.lr/10)
@@ -43,7 +45,7 @@ class VQVAE_Trainer():
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
                 recon_x, z_q, z = self.model(data)
-                loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q)
+                loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q, beta=self.beta)
                 loss.backward()
                 self.optimizer.step()
                 self.scheduler.step()
@@ -86,7 +88,7 @@ class VQVAE_Trainer():
                 batch_num += 1
                 data = data.to(self.device)
                 recon_x, z_q, z = self.model(data)
-                loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q)
+                loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q, beta=self.beta)
                 val_loss += loss.item()
                 val_rec_loss += rec_loss.item()
                 val_quantization_loss += quantization_loss.item()

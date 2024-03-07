@@ -6,11 +6,11 @@ img_size: 256
 batch_size: 128
 
 VQ-VAE:
-  experiment_id: 0
+  experiment_id: 2
   count_low_usage: False
   epochs: 500
   lr: 0.0003
-  beta: 0.25
+  beta: 0.1
   kernel_sizes:
     - 3
     - 3
