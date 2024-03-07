@@ -16,5 +16,5 @@ VQ-VAE:
     - 3
   res_layers: 2
   latent_dimension: 64
-  code_book_size: 256
+  code_book_size: 512
   early_stop_patience: 20

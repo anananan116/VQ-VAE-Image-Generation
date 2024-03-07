@@ -50,7 +50,7 @@ class VQVAE_Trainer():
                 train_loss += loss.item()
                 train_rec_loss += rec_loss.item()
                 train_quantization_loss += quantization_loss.item()
-                count.append((self.model.quantization.cluster_size > 1.0).sum().item())
+                count.append((self.model.quantization.cluster_size > 2.0).sum().item())
                 progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, quant: {(train_quantization_loss/batch_num):.4f}, count: {(sum(count)/len(count)):.4f}")
                 progress_bar.update(1)
             progress_bar.close()

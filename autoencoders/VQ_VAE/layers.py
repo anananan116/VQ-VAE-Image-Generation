@@ -134,9 +134,8 @@ class QuantizationLayer(torch.nn.Module):
                 random_indices = torch.randint(0, flatten.size(0), (n_small_clusters,))
                 random_samples = flatten[random_indices].detach()
                 self.embed.data[:, small_clusters] = random_samples.T
-                self.embed_avg[:, small_clusters] = random_samples.T
-                self.embed.cluster_size[small_clusters] = 5.0
-                
+                self.embed_avg.data[:, small_clusters] = random_samples.T
+                self.cluster_size.data[small_clusters] = 1.0
             
             n = self.cluster_size.sum()
             cluster_size = (

@@ -162,3 +162,4 @@ data_utils/raw_data
 logs/
 autoencoders/VQ_VAE/VQ_VAE_2.py
 autoencoders/VQ_VAE/layers_2.py
+./resutls
