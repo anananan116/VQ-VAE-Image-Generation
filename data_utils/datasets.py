@@ -8,7 +8,6 @@ class CelebADataset(Dataset):
         self.images = []
         for image_file in tqdm(image_files):
             self.images.append(self.load_image(image_file))
-        self.images = torch.tensor(self.images)
         
     def load_image(self, file):
         with Image.open(file) as img:
