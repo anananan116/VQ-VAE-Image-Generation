@@ -1,5 +1,6 @@
 from data_utils.prepare_data import load_celebA
 from autoencoders.VQ_VAE.VQ_VAE import VQ_VAE
+from autoencoders.VQ_VAE.VQ_VAE_2 import VQ_VAE2
 from trainers.autoencoder_trainer import VQVAE_Trainer
 from yaml import safe_load
 import argparse

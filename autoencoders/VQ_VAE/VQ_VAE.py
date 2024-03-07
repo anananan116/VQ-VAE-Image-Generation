@@ -1,6 +1,6 @@
 from .layers import Encoder, Decoder, QuantizationLayer
 import torch
-
+import torch.nn as nn
 
 class VQ_VAE(torch.nn.Module):
     def __init__(self, in_channels, latent_dimension, kernel_sizes, res_layers, code_book_size):

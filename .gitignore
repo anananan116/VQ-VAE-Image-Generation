@@ -160,4 +160,5 @@ cython_debug/
 #.idea/
 data_utils/raw_data
 logs/
-results/
+autoencoders/VQ_VAE/VQ_VAE_2.py
+autoencoders/VQ_VAE/layers_2.py

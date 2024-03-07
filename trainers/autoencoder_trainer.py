@@ -5,10 +5,15 @@ from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import os
 
-def vae_loss(recon_x, x, z, z_q, beta=0.25):
+def vae_loss(recon_x, x, z, z_q, beta=0.1):
     rec_loss = torch.nn.functional.mse_loss(recon_x, x, reduction='mean')
     quantization_loss = torch.nn.functional.mse_loss(z.detach(), z_q, reduction='mean') + beta * torch.nn.functional.mse_loss(z, z_q.detach(), reduction='mean')
     return rec_loss + quantization_loss, rec_loss, quantization_loss
+
+def vae2_loss(recon_x, x, q_diff, beta=0.25):
+    rec_loss = torch.nn.functional.mse_loss(recon_x, x, reduction='mean')
+    q_diff = q_diff.mean() * beta
+    return rec_loss + q_diff, rec_loss, q_diff
 
 class VQVAE_Trainer():
     def __init__(self, model, config):
@@ -31,17 +36,13 @@ class VQVAE_Trainer():
             train_rec_loss = 0.0
             train_quantization_loss = 0.0
             batch_num = 0
-            total_count = 0
             progress_bar = tqdm(train_loader)
+            count = []
             for data in train_loader:
                 batch_num += 1
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
-                if self.count_low_usage:
-                    recon_x, z_q, z, count = self.model(data, count_low_usage=self.count_low_usage)
-                    total_count += count
-                else:
-                    recon_x, z_q, z = self.model(data)
+                recon_x, z_q, z = self.model(data)
                 loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q)
                 loss.backward()
                 self.optimizer.step()
@@ -49,10 +50,8 @@ class VQVAE_Trainer():
                 train_loss += loss.item()
                 train_rec_loss += rec_loss.item()
                 train_quantization_loss += quantization_loss.item()
-                if total_count > 0:
-                    progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, Quant: {(train_quantization_loss/batch_num):.4f}, Count: {(total_count/batch_num):.1f}")
-                else:
-                    progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, Quant: {(train_quantization_loss/batch_num):.4f}")
+                count.append((self.model.quantization.cluster_size > 1.0).sum().item())
+                progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, quant: {(train_quantization_loss/batch_num):.4f}, count: {(sum(count)/len(count)):.4f}")
                 progress_bar.update(1)
             progress_bar.close()
             avg_train_loss = train_loss / len(train_loader)
@@ -86,10 +85,7 @@ class VQVAE_Trainer():
             for data in validation_loader:
                 batch_num += 1
                 data = data.to(self.device)
-                if self.count_low_usage:
-                    recon_x, z_q, z, count = self.model(data, count_low_usage=self.count_low_usage)
-                else:
-                    recon_x, z_q, z = self.model(data)
+                recon_x, z_q, z = self.model(data)
                 loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q)
                 val_loss += loss.item()
                 val_rec_loss += rec_loss.item()
@@ -102,7 +98,7 @@ class VQVAE_Trainer():
         avg_quantization_loss = val_quantization_loss / len(validation_loader)
         self.writer.add_scalar('Epoch/val_rec_loss', avg_rec_loss, epoch)
         self.writer.add_scalar('Epoch/val_quantization_loss', avg_quantization_loss, epoch)
-        print(f'Epoch {epoch+1}, Val Loss: {avg_val_loss:.3f}, Rec: {avg_rec_loss:.3f}, Quant: {avg_quantization_loss:.3f}')
+        print(f'Epoch {epoch+1}, Val Loss: {avg_val_loss:.4f}, Rec: {avg_rec_loss:.4f}, Quant: {avg_quantization_loss:.4f}')
         return avg_rec_loss
 
     def test(self, test_loader):

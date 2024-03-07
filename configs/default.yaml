@@ -3,19 +3,18 @@ dataset: celebA
 validation_ratio: 0.05
 test_ratio: 0.02
 img_size: 256
-batch_size: 196
+batch_size: 128
 
 VQ-VAE:
-  count_low_usage: True
-  epochs: 1000
-  lr: 0.00025
+  version: 2
+  count_low_usage: False
+  epochs: 500
+  lr: 0.0003
   beta: 0.25
   kernel_sizes:
-    - 5
-    - 5
     - 3
-  res_layers: 4
-  latent_dimension: 128
-  num_layers: 3
-  code_book_size: 512
+    - 3
+  res_layers: 2
+  latent_dimension: 64
+  code_book_size: 256
   early_stop_patience: 20
