@@ -3,21 +3,24 @@ import torch.nn
 import torch.nn.functional as F
 
 class ResidualBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, last_layer = False):
+    def __init__(self, in_channels, out_channels, kernel_size = [3,1], last_layer = False):
         super(ResidualBlock, self).__init__()
-        self.conv1 = torch.nn.Conv2d(in_channels, out_channels, 3, padding = "same")
+        self.conv1 = torch.nn.Conv2d(in_channels, out_channels, kernel_size[0], padding = "same")
         self.batch_norm1 = torch.nn.BatchNorm2d(out_channels)
-        self.conv2 = torch.nn.Conv2d(out_channels, out_channels, 1, padding = "same")
+        self.conv2 = torch.nn.Conv2d(out_channels, out_channels, kernel_size[1], padding = "same")
         self.batch_norm2 = torch.nn.BatchNorm2d(out_channels)
         self.last_layer = last_layer
+        self.relu = torch.nn.ReLU()
 
     def forward(self, x):
         residual = x
-        out = F.relu(self.batch_norm1(self.conv1(x)))
+        # out = self.relu(self.batch_norm1(self.conv1(x)))
+        out = self.relu(self.conv1(x))
         if self.last_layer:
             out = self.conv2(out)
         else: 
-            out = F.relu(self.batch_norm2(self.conv2(out)))
+            #out = self.relu(self.batch_norm2(self.conv2(out)))
+            out = self.relu(self.conv2(out))
         out = out + residual
         return out
     
@@ -26,26 +29,30 @@ class convBlock(torch.nn.Module):
         super(convBlock, self).__init__()
         self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = kernel_size//2)
         self.batch_norm = torch.nn.BatchNorm2d(out_channels)
+        self.relu = torch.nn.ReLU()
         
     def forward(self, x):
-        out = F.relu(self.batch_norm(self.conv(x)))
+        #out = self.relu(self.batch_norm(self.conv(x)))
+        out = self.relu(self.conv(x))
         return out
 
 class decovBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, last_layer = False):
         super(decovBlock, self).__init__()
-        self.deconv = torch.nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride)
+        self.deconv = torch.nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride = stride, padding = 1)
         if kernel_size % 2 == 1:  # If kernel size is odd
             self.deconv.padding = ((kernel_size - 1) // 2,) * 2  # Typical padding formula for odd kernels
             self.deconv.output_padding = (1,) * 2  # Often needed adjustment for stride of 2
         self.batch_norm = torch.nn.BatchNorm2d(out_channels)
         self.last_layer = last_layer
+        self.relu = torch.nn.ReLU()
         
     def forward(self, x):
         if self.last_layer:
             out = self.deconv(x)
         else:
-            out = F.relu(self.batch_norm(self.deconv(x)))
+            #out = self.relu(self.batch_norm(self.deconv(x)))
+            out = self.relu(self.deconv(x))
         return out
 
 class Encoder(torch.nn.Module):
@@ -61,9 +68,9 @@ class Encoder(torch.nn.Module):
         res_layers = []
         for i in range(n_res_layers):
             if i == n_res_layers - 1:
-                res_layers.append(ResidualBlock(latent_dimension, latent_dimension, kernel_sizes[-1], last_layer = True))
+                res_layers.append(ResidualBlock(latent_dimension, latent_dimension, last_layer = True))
             else:
-                res_layers.append(ResidualBlock(latent_dimension, latent_dimension, kernel_sizes[-1]))
+                res_layers.append(ResidualBlock(latent_dimension, latent_dimension))
         self.res_layers = torch.nn.Sequential(*res_layers)
         
     def forward(self, x):
@@ -79,14 +86,14 @@ class Decoder(torch.nn.Module):
         decov_layers = []
         for i in range(len(kernel_sizes)):
             if i == len(kernel_sizes) - 1:
-                decov_layers.append(decovBlock(latent_dimension, in_channels, kernel_sizes[i], 2, last_layer = True))
+                decov_layers.append(decovBlock(latent_dimension, in_channels, kernel_sizes[i] + 1, 2, last_layer = True))
             else:
-                decov_layers.append(decovBlock(latent_dimension, latent_dimension, kernel_sizes[i], 2))
-        self.decov_layers = torch.nn.Sequential(*decov_layers)
+                decov_layers.append(decovBlock(latent_dimension, latent_dimension, kernel_sizes[i] + 1, 2))
         res_layers = []
         for i in range(n_res_layers):
-            res_layers.append(ResidualBlock(latent_dimension, latent_dimension, kernel_sizes[-1]))
+            res_layers.append(ResidualBlock(latent_dimension, latent_dimension))
         self.res_layers = torch.nn.Sequential(*res_layers)
+        self.decov_layers = torch.nn.Sequential(*decov_layers)
         
     def forward(self, x):
         out = self.res_layers(x)
@@ -101,7 +108,7 @@ class QuantizationLayer(torch.nn.Module):
         self.decay = decay
         self.eps = eps
 
-        embed = torch.randn(latent_dimension, code_book_size)
+        embed = torch.zeros(latent_dimension, code_book_size)
         self.embed = torch.nn.Parameter(embed, requires_grad=True)
         # self.register_buffer("embed", embed)
         self.register_buffer("cluster_size", torch.zeros(code_book_size))
@@ -110,6 +117,12 @@ class QuantizationLayer(torch.nn.Module):
     def forward(self, x, count_low_usage = False):
         x = x.permute(0, 2, 3, 1).contiguous() #(B, H, W, C)
         flatten = x.reshape(-1, self.dim)
+        if torch.norm(self.embed.data) == 0:
+            print("initializing codebook")
+            random_indices = torch.randint(0, flatten.size(0), (self.n_embed,))
+            random_samples = flatten[random_indices].detach()
+            self.embed.data[:] = random_samples.T
+            self.embed_avg.data[:] = random_samples.T
         dist = (
             flatten.pow(2).sum(1, keepdim=True)
             - 2 * flatten @ self.embed
@@ -129,14 +142,14 @@ class QuantizationLayer(torch.nn.Module):
             )
             self.embed_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
             # reassign low usage entries
-            small_clusters = self.cluster_size < 2.0
+            small_clusters = self.cluster_size < x.size(1)/16
             n_small_clusters = small_clusters.sum().item()
-            if n_small_clusters > 0:
+            if n_small_clusters > 16:
                 random_indices = torch.randint(0, flatten.size(0), (n_small_clusters,))
                 random_samples = flatten[random_indices].detach()
                 self.embed.data[:, small_clusters] = random_samples.T
                 self.embed_avg.data[:, small_clusters] = random_samples.T
-                self.cluster_size.data[small_clusters] = 1.0
+                self.cluster_size.data[small_clusters] = x.size(1)/16
             
             n = self.cluster_size.sum()
             cluster_size = (
@@ -145,9 +158,9 @@ class QuantizationLayer(torch.nn.Module):
             embed_normalized = self.embed_avg / cluster_size.unsqueeze(0)
             self.embed.data.copy_(embed_normalized)
 
-        diff = quantize.permute(0, 3, 1, 2)
+        quant_loss = torch.nn.functional.mse_loss(quantize.detach(), x)
         quantize = (x + (quantize - x).detach()).permute(0, 3, 1, 2) #back to (B, C, H, W)
-        return quantize, diff
+        return quantize, quant_loss
     def embed_code(self, embed_id):
         return F.embedding(embed_id, self.embed.transpose(0, 1))
 

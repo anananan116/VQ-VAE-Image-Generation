@@ -1,0 +1,20 @@
+#dataset settings
+dataset: celebA
+validation_ratio: 0.05
+test_ratio: 0.02
+img_size: 256
+batch_size: 100
+
+VQ-VAE:
+  experiment_id: 4
+  count_low_usage: False
+  epochs: 200
+  lr: 0.0003
+  beta: 0.25
+  kernel_sizes:
+    - 3
+    - 3
+  res_layers: 4
+  latent_dimension: 128
+  code_book_size: 512
+  early_stop_patience: 20

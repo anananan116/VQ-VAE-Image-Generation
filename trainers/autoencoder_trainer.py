@@ -10,10 +10,10 @@ def vae_loss(recon_x, x, z, z_q, beta=0.2):
     quantization_loss = torch.nn.functional.mse_loss(z.detach(), z_q, reduction='mean') + beta * torch.nn.functional.mse_loss(z, z_q.detach(), reduction='mean')
     return rec_loss + quantization_loss, rec_loss, quantization_loss
 
-def vae2_loss(recon_x, x, q_diff, beta=0.25):
+def vae2_loss(recon_x, x, quant_loss, beta=0.25):
     rec_loss = torch.nn.functional.mse_loss(recon_x, x, reduction='mean')
-    q_diff = q_diff.mean() * beta
-    return rec_loss + q_diff, rec_loss, q_diff
+    quant_loss = quant_loss * beta
+    return rec_loss + quant_loss, rec_loss, quant_loss
 
 class VQVAE_Trainer():
     def __init__(self, model, config):
@@ -29,6 +29,7 @@ class VQVAE_Trainer():
         self.beta = config['beta']
         self.exp_id = config['experiment_id']
         self.writer = SummaryWriter(log_dir=f'./logs/exp{self.exp_id}/')
+        self.version = config['version']
 
     def train(self, train_loader, validation_loader):
         self.scheduler = CosineAnnealingLR(self.optimizer, T_max=self.epochs * len(train_loader), eta_min=self.lr/10)
@@ -44,15 +45,18 @@ class VQVAE_Trainer():
                 batch_num += 1
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
-                recon_x, z_q, z = self.model(data)
-                loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q, beta=self.beta)
+                recon_x, quant_loss = self.model(data)
+                loss, rec_loss, quantization_loss = vae2_loss(recon_x, data, quant_loss, beta=self.beta)
                 loss.backward()
                 self.optimizer.step()
                 self.scheduler.step()
                 train_loss += loss.item()
                 train_rec_loss += rec_loss.item()
                 train_quantization_loss += quantization_loss.item()
-                count.append((self.model.quantization.cluster_size > 2.0).sum().item())
+                if self.version == 1:
+                    count.append((self.model.quantization.cluster_size > 2.0).sum().item())
+                else:
+                    count.append((self.model.quantization_bottom.cluster_size > 4.0).sum().item() + (self.model.quantization_top.cluster_size > 2.0).sum().item())
                 progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, quant: {(train_quantization_loss/batch_num):.4f}, count: {(sum(count)/len(count)):.4f}")
                 progress_bar.update(1)
             progress_bar.close()
@@ -87,8 +91,8 @@ class VQVAE_Trainer():
             for data in validation_loader:
                 batch_num += 1
                 data = data.to(self.device)
-                recon_x, z_q, z = self.model(data)
-                loss, rec_loss, quantization_loss = vae_loss(recon_x, data, z, z_q, beta=self.beta)
+                recon_x, quant_loss = self.model(data)
+                loss, rec_loss, quantization_loss = vae2_loss(recon_x, data, quant_loss, beta=self.beta)
                 val_loss += loss.item()
                 val_rec_loss += rec_loss.item()
                 val_quantization_loss += quantization_loss.item()

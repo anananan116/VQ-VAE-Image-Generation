@@ -1,6 +1,5 @@
 from data_utils.prepare_data import load_celebA
-from autoencoders.VQ_VAE.VQ_VAE import VQ_VAE
-from autoencoders.VQ_VAE.VQ_VAE_2 import VQ_VAE2
+from autoencoders.VQ_VAE.VQ_VAE import VQ_VAE, VQ_VAE2
 from trainers.autoencoder_trainer import VQVAE_Trainer
 from yaml import safe_load
 import argparse
@@ -14,13 +13,23 @@ def main(config):
         config['batch_size']
     )
     vqvae_config = config['VQ-VAE']
-    vqvae = VQ_VAE(
-        3, 
-        vqvae_config['latent_dimension'], 
-        vqvae_config['kernel_sizes'], 
-        vqvae_config['res_layers'], 
-        vqvae_config['code_book_size']
-    )
+    if 'version' in vqvae_config.keys() and vqvae_config['version'] == 2:
+        vqvae = VQ_VAE2(
+            3, 
+            vqvae_config['latent_dimension'], 
+            vqvae_config['kernel_sizes'], 
+            vqvae_config['res_layers'], 
+            vqvae_config['code_book_size']
+        )
+    else:
+        vqvae_config['version'] = 1
+        vqvae = VQ_VAE(
+            3, 
+            vqvae_config['latent_dimension'], 
+            vqvae_config['kernel_sizes'], 
+            vqvae_config['res_layers'], 
+            vqvae_config['code_book_size']
+        )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     vqvae_config['device'] = device
     trainer = VQVAE_Trainer(vqvae, vqvae_config)
