@@ -3,7 +3,7 @@ import torch.nn
 import torch.nn.functional as F
 
 class ResidualBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size = [3,1], last_layer = False):
+    def __init__(self, in_channels, out_channels, kernel_size = [3,3], last_layer = False):
         super(ResidualBlock, self).__init__()
         self.conv1 = torch.nn.Conv2d(in_channels, out_channels, kernel_size[0], padding = "same")
         self.batch_norm1 = torch.nn.BatchNorm2d(out_channels)
@@ -164,14 +164,19 @@ class QuantizationLayer(torch.nn.Module):
     def embed_code(self, embed_id):
         return F.embedding(embed_id, self.embed.transpose(0, 1))
 
-    def encode(self, x):
-        # Flatten input
-        flat_x = x.permute(0, 2, 3, 1).contiguous().view(-1, self.latent_dimension)
+    def encode_to_id(self, x):
+        x = x.permute(0, 2, 3, 1).contiguous() #(B, H, W, C)
+        flatten = x.reshape(-1, self.dim)
+        dist = (
+            flatten.pow(2).sum(1, keepdim=True)
+            - 2 * flatten @ self.embed
+            + self.embed.pow(2).sum(0, keepdim=True)
+        )
+        _, embed_ind = (-dist).max(1)
+        embed_ind = embed_ind.view(*x.shape[:-1])
         
-        # Compute distances between input vectors and embeddings
-        distances = torch.sum(flat_x**2, dim=1, keepdim=True) + torch.sum(self.code_book**2, dim=1) - 2 * torch.matmul(flat_x, self.code_book.t())
-        
-        # Find the closest embeddings
-        min_distances_indices = torch.argmin(distances, dim=1).view(x.shape)
-        
-        return min_distances_indices
+        return embed_ind
+    
+    def decode_from_id(self, embed_idx):
+        quantize = self.embed_code(embed_idx)
+        return quantize.permute(0, 3, 1, 2) #back to (B, C, H, W)

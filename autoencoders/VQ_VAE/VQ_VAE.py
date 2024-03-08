@@ -26,10 +26,10 @@ class VQ_VAE2(torch.nn.Module):
         self.encoder_top = Encoder(latent_dimension, latent_dimension, kernel_sizes[-1:], res_layers)       # B*C*h_b*w_b -> B*C*h_t*w_t
         self.quat_cov_top = nn.Conv2d(latent_dimension, latent_dimension//2, 1)                             # B*C*h_t*w_t -> B*(C/2)*h_t*w_t
         self.quantization_top = QuantizationLayer(latent_dimension // 2, code_book_size)
-        self.upsample_top = nn.ConvTranspose2d(latent_dimension, latent_dimension//2, kernel_size=3, stride= 2, padding = 1, output_padding= 1)           # B*C*h_t*w_t -> B*(C/2)*2h_b*2w_b
+        self.upsample_top = nn.ConvTranspose2d(latent_dimension//2, latent_dimension//2, kernel_size=3, stride= 2, padding = 1, output_padding= 1)           # B*C*h_t*w_t -> B*(C/2)*2h_b*2w_b
         
-        self.decoder_top = Decoder(latent_dimension//2, latent_dimension//2, kernel_sizes[-1:], res_layers) # B*(C/2)*h_t*w_t -> B*C*h_b*w_b
-        self.decoder_bottom = Decoder(latent_dimension + latent_dimension//2, in_channels, kernel_sizes[:-1], res_layers)         # B*C*h_b*w_b -> B*3*H*W
+        self.decoder_top = Decoder(latent_dimension//2, latent_dimension//2, kernel_sizes[-1:], res_layers)                                               # B*(C/2)*h_t*w_t -> B*C*h_b*w_b
+        self.decoder_bottom = Decoder(latent_dimension + latent_dimension//2, in_channels, kernel_sizes[:-1], res_layers)                                 # B*C*h_b*w_b -> B*3*H*W
 
     def encode(self, x):
         b_encoded = self.encoder_bottom(x)
@@ -37,7 +37,7 @@ class VQ_VAE2(torch.nn.Module):
         b_encoded = self.quat_cov_bottom(b_encoded)
         t_encoded_q = self.quat_cov_top(t_encoded)
         t_quantized, t_quant_loss = self.quantization_top(t_encoded_q)
-        t_upsampled = self.upsample_top(t_encoded)
+        t_upsampled = self.upsample_top(t_quantized)
         t_quantized = self.decoder_top(t_quantized)
         b_encoded = torch.concat((b_encoded, t_quantized), dim=1)
         b_quantized, b_quant_loss = self.quantization_bottom(b_encoded)
@@ -51,3 +51,22 @@ class VQ_VAE2(torch.nn.Module):
         b_quantized = torch.concat((b_quantized, t_upsampled), dim=1)
         x_hat = self.decode(b_quantized)
         return x_hat, quant_loss
+    
+    def encode_to_id(self, x):
+        b_encoded = self.encoder_bottom(x)
+        t_encoded = self.encoder_top(b_encoded)
+        b_encoded = self.quat_cov_bottom(b_encoded)
+        t_encoded_q = self.quat_cov_top(t_encoded)
+        t_quantized, _ = self.quantization_top(t_encoded_q)
+        top_id = self.quantization_top.encode_to_id(t_encoded_q)
+        t_quantized = self.decoder_top(t_quantized)
+        b_encoded = torch.concat((b_encoded, t_quantized), dim=1)
+        bottom_id = self.quantization_bottom.encode_to_id(b_encoded)
+        return bottom_id, top_id
+    
+    def decode_from_id(self, bottom_id, top_id):
+        b_quantized = self.quantization_bottom.decode_from_id(bottom_id)
+        t_quantized = self.quantization_top.decode_from_id(top_id)
+        t_upsampled = self.upsample_top(t_quantized)
+        b_quantized = torch.concat((b_quantized, t_upsampled), dim=1)
+        return self.decoder_bottom(b_quantized)
