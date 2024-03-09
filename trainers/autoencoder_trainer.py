@@ -30,6 +30,7 @@ class VQVAE_Trainer():
         self.exp_id = config['experiment_id']
         self.writer = SummaryWriter(log_dir=f'./logs/exp{self.exp_id}/')
         self.version = config['version']
+        print(model)
 
     def train(self, train_loader, validation_loader):
         self.scheduler = CosineAnnealingLR(self.optimizer, T_max=self.epochs * len(train_loader), eta_min=self.lr/10)

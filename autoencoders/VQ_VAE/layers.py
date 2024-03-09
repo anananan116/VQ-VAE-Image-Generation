@@ -3,23 +3,19 @@ import torch.nn
 import torch.nn.functional as F
 
 class ResidualBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size = [3,3], last_layer = False):
+    def __init__(self, in_channels, out_channels, kernel_size = [3,1], last_layer = False):
         super(ResidualBlock, self).__init__()
         self.conv1 = torch.nn.Conv2d(in_channels, out_channels, kernel_size[0], padding = "same")
-        self.batch_norm1 = torch.nn.BatchNorm2d(out_channels)
         self.conv2 = torch.nn.Conv2d(out_channels, out_channels, kernel_size[1], padding = "same")
-        self.batch_norm2 = torch.nn.BatchNorm2d(out_channels)
         self.last_layer = last_layer
         self.relu = torch.nn.ReLU()
 
     def forward(self, x):
         residual = x
-        # out = self.relu(self.batch_norm1(self.conv1(x)))
         out = self.relu(self.conv1(x))
         if self.last_layer:
             out = self.conv2(out)
         else: 
-            #out = self.relu(self.batch_norm2(self.conv2(out)))
             out = self.relu(self.conv2(out))
         out = out + residual
         return out
@@ -28,7 +24,6 @@ class convBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride):
         super(convBlock, self).__init__()
         self.conv = torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding = kernel_size//2)
-        self.batch_norm = torch.nn.BatchNorm2d(out_channels)
         self.relu = torch.nn.ReLU()
         
     def forward(self, x):
@@ -43,7 +38,6 @@ class decovBlock(torch.nn.Module):
         if kernel_size % 2 == 1:  # If kernel size is odd
             self.deconv.padding = ((kernel_size - 1) // 2,) * 2  # Typical padding formula for odd kernels
             self.deconv.output_padding = (1,) * 2  # Often needed adjustment for stride of 2
-        self.batch_norm = torch.nn.BatchNorm2d(out_channels)
         self.last_layer = last_layer
         self.relu = torch.nn.ReLU()
         
@@ -51,7 +45,6 @@ class decovBlock(torch.nn.Module):
         if self.last_layer:
             out = self.deconv(x)
         else:
-            #out = self.relu(self.batch_norm(self.deconv(x)))
             out = self.relu(self.deconv(x))
         return out
 
