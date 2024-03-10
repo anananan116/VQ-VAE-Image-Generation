@@ -165,3 +165,4 @@ autoencoders/VQ_VAE/layers_2.py
 *.pth
 !results/best_model.pth
 *.npy
+*.0

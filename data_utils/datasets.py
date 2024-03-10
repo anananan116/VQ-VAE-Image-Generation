@@ -26,3 +26,14 @@ class CelebADataset(Dataset):
     def __getitem__(self, idx):
         # Return the preloaded and preprocessed image
         return self.images[idx]
+    
+class latentDataset(Dataset):
+    def __init__(self, top_codes, bottom_codes):
+        self.top_codes = torch.tensor(top_codes, dtype=torch.long)
+        self.bottom_codes = torch.tensor(bottom_codes, dtype=torch.long)
+    
+    def __len__(self):
+        return len(self.top_codes)
+    
+    def __getitem__(self, index):
+        return self.top_codes[index], self.bottom_codes[index]

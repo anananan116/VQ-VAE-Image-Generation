@@ -1,9 +1,9 @@
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
-# Assuming CelebADataset is properly defined in your datasets module
-from .datasets import CelebADataset
+import numpy as np
+from .datasets import CelebADataset, latentDataset
 import glob
-
+import torch
 class NormalizeTransform:
     def __call__(self, x):
         return x * 2 - 1
@@ -34,3 +34,15 @@ def load_celebA(img_size, validation_ratio, test_ratio, batch_size):
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_dataloader, validation_dataloader, test_dataloader
+
+def load_latent_code(validation_ratio, batch_size):
+    top_codes = np.load("t_codes.npy").astype(np.int64)
+    bottom_codes = np.load("b_codes.npy").astype(np.int64)
+    dataset = latentDataset(top_codes, bottom_codes)
+    dataset_size = len(dataset)
+    validation_size = int(validation_ratio * dataset_size)
+    train_size = dataset_size - validation_size
+    train_dataset, validation_dataset = random_split(dataset, [train_size, validation_size], generator=torch.Generator().manual_seed(42))
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+    return train_dataloader, val_dataloader

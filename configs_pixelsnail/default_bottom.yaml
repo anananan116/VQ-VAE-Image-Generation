@@ -1,0 +1,13 @@
+batch_size: 16
+epochs: 200
+lr: 2e-4
+hier: bottom
+channel: 256
+n_res_block: 5
+n_res_channel: 256
+n_out_res_block: 0
+n_cond_res_block: 3
+dropout: 0.15
+exp_id: 1
+early_stop_patience: 10
+validation_ratio: 0.1
