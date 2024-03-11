@@ -1,5 +1,5 @@
 batch_size: 16
-epochs: 200
+epochs: 70
 lr: 2e-4
 hier: bottom
 channel: 256

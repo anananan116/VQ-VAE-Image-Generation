@@ -36,7 +36,6 @@ def main(config):
                 n_out_res_block=config['n_out_res_block'],
                 n_cond_res_block=config['n_cond_res_block'],
                 cond_res_channel=config['n_res_channel'],
-                attention=False
         )
     
     if torch.cuda.device_count() > 1:

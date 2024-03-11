@@ -3,9 +3,9 @@ epochs: 200
 lr: 2e-4
 hier: top
 channel: 256
-n_res_block: 5
+n_res_block: 4
 n_res_channel: 256
-n_out_res_block: 5
+n_out_res_block: 4
 n_cond_res_block: 3
 dropout: 0.2
 exp_id: 0
