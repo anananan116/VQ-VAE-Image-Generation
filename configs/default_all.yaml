@@ -3,7 +3,7 @@ dataset: both
 validation_ratio: 0.01
 test_ratio: 0.01
 img_size: 128
-batch_size: 512
+batch_size: 256
 
 VQ-VAE:
   version: 2
