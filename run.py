@@ -5,7 +5,7 @@ from yaml import safe_load
 import argparse
 import torch
 
-def main(config):
+def main(config, device="cuda:0"):
     train_dataloader, validation_dataloader, test_dataloader = load_images(
             config['img_size'], 
             config['validation_ratio'], 
@@ -20,7 +20,8 @@ def main(config):
             vqvae_config['latent_dimension'], 
             vqvae_config['kernel_sizes'], 
             vqvae_config['res_layers'], 
-            vqvae_config['code_book_size']
+            vqvae_config['code_book_size'],
+            vqvae_config['lower_bound_factor']
         )
     else:
         vqvae_config['version'] = 1
@@ -31,12 +32,8 @@ def main(config):
             vqvae_config['res_layers'], 
             vqvae_config['code_book_size']
         )
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(device)
     vqvae_config['device'] = device
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs!")
-        # Wrap the model with DataParallel
-        vqvae = torch.nn.DataParallel(vqvae)
     trainer = VQVAE_Trainer(vqvae, vqvae_config)
     trainer.train(train_dataloader, validation_dataloader)
     
@@ -44,6 +41,7 @@ def main(config):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--config', type=str, default="./configs/default.yaml", help="Path to the config file")
+    argparser.add_argument('--device', type=str, default="cuda:0", help="device to train on")
     args = argparser.parse_args()
     config = safe_load(open(args.config))
-    main(config)
+    main(config, device=args.device)

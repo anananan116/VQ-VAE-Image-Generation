@@ -94,7 +94,7 @@ class Decoder(torch.nn.Module):
         return out
     
 class QuantizationLayer(torch.nn.Module):
-    def __init__(self, latent_dimension, code_book_size, decay=0.99, eps=1e-5):
+    def __init__(self, latent_dimension, code_book_size, lower_bound_factor, decay=0.99, eps=1e-5):
         super(QuantizationLayer, self).__init__()
         self.dim = latent_dimension
         self.n_embed = code_book_size
@@ -107,6 +107,7 @@ class QuantizationLayer(torch.nn.Module):
         self.register_buffer("cluster_size", torch.zeros(code_book_size))
         self.register_buffer("embed_avg", embed.clone())
         self.pixels_each_batch = None
+        self.lower_bound_factor = lower_bound_factor
 
     def forward(self, x, count_low_usage = False):
         self.pixels_each_batch = x.size(0) * x.size(2) * x.size(3)
@@ -137,14 +138,14 @@ class QuantizationLayer(torch.nn.Module):
             )
             self.embed_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
             # reassign low usage entries
-            small_clusters = self.cluster_size < self.pixels_each_batch/self.n_embed/16
+            small_clusters = self.cluster_size < self.pixels_each_batch/self.n_embed/self.lower_bound_factor
             n_small_clusters = small_clusters.sum().item()
             if n_small_clusters > 16:
                 random_indices = torch.randint(0, flatten.size(0), (n_small_clusters,))
                 random_samples = flatten[random_indices].detach()
                 self.embed.data[:, small_clusters] = random_samples.T
                 self.embed_avg.data[:, small_clusters] = random_samples.T
-                self.cluster_size.data[small_clusters] = x.size(1)/16
+                self.cluster_size.data[small_clusters] = self.pixels_each_batch/self.n_embed/self.lower_bound_factor
             
             n = self.cluster_size.sum()
             cluster_size = (

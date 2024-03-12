@@ -47,7 +47,6 @@ class VQVAE_Trainer():
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
                 recon_x, quant_loss = self.model(data)
-                quant_loss = quant_loss.mean()
                 loss, rec_loss, quantization_loss = vae2_loss(recon_x, data, quant_loss, beta=self.beta)
                 loss.backward()
                 self.optimizer.step()
