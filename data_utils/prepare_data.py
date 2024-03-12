@@ -18,10 +18,10 @@ def load_images(img_size, validation_ratio, test_ratio, batch_size, dataset_name
     if dataset_name == "celebA":
         image_files = glob.glob('./data_utils/raw_data/CelebA-HQ-img/*.jpg')
     elif dataset_name == "FFHQ":
-        image_files = glob.glob('./data_utils/raw_data/FFHQ-img/*/*.png')
+        image_files = glob.glob('./data_utils/raw_data/FFHQ-img/*.png')
     elif dataset_name == "both":
         image_files = glob.glob('./data_utils/raw_data/CelebA-HQ-img/*.jpg')
-        image_files.extend(glob.glob('./data_utils/raw_data/FFHQ-img/*/*.png'))
+        image_files.extend(glob.glob('./data_utils/raw_data/FFHQ-img/*.png'))
     else:
         raise ValueError("Invalid dataset")
 
