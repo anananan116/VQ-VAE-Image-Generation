@@ -58,8 +58,8 @@ class VQVAE_Trainer():
                     count.append((self.model.quantization.cluster_size > self.model.quantization.pixels_each_batch/self.model.quantization.n_embed/16).sum().item())
                 else:
                     top_limit = self.model.quantization_top.pixels_each_batch/self.model.quantization_top.n_embed/self.model.quantization_top.lower_bound_factor
-                    bottom_limit = self.model.quantization_bottom.pixels_each_batch/self.model.quantization_bottom.n_embed/self.model.quantization_top.lower_bound_factor
-                    count.append((self.model.quantization_bottom.cluster_size > top_limit).sum().item() + (self.model.quantization_bottom.cluster_size > bottom_limit).sum().item())
+                    bottom_limit = self.model.quantization_bottom.pixels_each_batch/self.model.quantization_bottom.n_embed/self.model.quantization_bottom.lower_bound_factor
+                    count.append((self.model.quantization_top.cluster_size > top_limit).sum().item() + (self.model.quantization_bottom.cluster_size > bottom_limit).sum().item())
                 progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, quant: {(train_quantization_loss/batch_num):.4f}, count: {(sum(count)/len(count)):.4f}")
                 progress_bar.update(1)
             progress_bar.close()
