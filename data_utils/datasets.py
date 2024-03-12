@@ -4,16 +4,16 @@ from tqdm import tqdm
 import torch
 import os
 class ImageDataset(Dataset):
-    def __init__(self, image_files, save_porcessed= False, transform=None):
+    def __init__(self, image_files, save_porcessed= None, transform=None):
         self.transform = transform
-        if os.path.exists('./data_utils/raw_data/preprocessed.pt'):
-            self.images = torch.load('./data_utils/raw_data/preprocessed.pt')
+        if os.path.exists(f'./data_utils/raw_data/{save_porcessed}'):
+            self.images = torch.load(f'./data_utils/raw_data/{save_porcessed}')
         elif save_porcessed:
             self.images = []
             for image_file in tqdm(image_files):
                 self.images.append(self.load_image(image_file))
             self.images = torch.stack(self.images)
-            torch.save(self.images, './data_utils/raw_data/preprocessed.pt')
+            torch.save(self.images, f'./data_utils/raw_data/{save_porcessed}')
         else:
             self.images = []
             for image_file in tqdm(image_files):

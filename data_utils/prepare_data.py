@@ -26,7 +26,7 @@ def load_images(img_size, validation_ratio, test_ratio, batch_size, dataset_name
         raise ValueError("Invalid dataset")
 
     # Create the CelebA dataset with preloaded images
-    dataset = ImageDataset(image_files, transform=transform)
+    dataset = ImageDataset(image_files, transform=transform, save_porcessed=dataset_name)
 
     dataset_size = len(dataset)
     validation_size = int(validation_ratio * dataset_size)
