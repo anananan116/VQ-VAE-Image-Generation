@@ -1,25 +1,32 @@
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 import numpy as np
-from .datasets import CelebADataset, latentDataset
+from .datasets import ImageDataset, latentDataset
 import glob
 import torch
 class NormalizeTransform:
     def __call__(self, x):
         return x * 2 - 1
 
-def load_celebA(img_size, validation_ratio, test_ratio, batch_size):
+def load_images(img_size, validation_ratio, test_ratio, batch_size, dataset_name):
     transform = transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
         # Adding normalization with standard ImageNet values
         transforms.Lambda(lambda x: x * 2 - 1),
     ])
-
-    image_files = glob.glob('./data_utils/raw_data/CelebA-HQ-img/*.jpg')
+    if dataset_name == "celebA":
+        image_files = glob.glob('./data_utils/raw_data/CelebA-HQ-img/*.jpg')
+    elif dataset_name == "FFHQ":
+        image_files = glob.glob('./data_utils/raw_data/FFHQ-img/*/*.png')
+    elif dataset_name == "both":
+        image_files = glob.glob('./data_utils/raw_data/CelebA-HQ-img/*.jpg')
+        image_files.extend(glob.glob('./data_utils/raw_data/FFHQ-img/*/*.png'))
+    else:
+        raise ValueError("Invalid dataset")
 
     # Create the CelebA dataset with preloaded images
-    dataset = CelebADataset(image_files, transform=transform)
+    dataset = ImageDataset(image_files, transform=transform)
 
     dataset_size = len(dataset)
     validation_size = int(validation_ratio * dataset_size)

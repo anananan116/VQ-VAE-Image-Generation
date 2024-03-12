@@ -1,4 +1,4 @@
-from data_utils.prepare_data import load_celebA
+from data_utils.prepare_data import load_images
 from autoencoders.VQ_VAE.VQ_VAE import VQ_VAE,VQ_VAE2
 from trainers.autoencoder_trainer import VQVAE_Trainer
 from yaml import safe_load
@@ -29,12 +29,13 @@ if __name__ == "__main__":
     argparser.add_argument('--config', type=str, default="./configs/default.yaml", help="Path to the config file")
     args = argparser.parse_args()
     config = safe_load(open(args.config))
-    train_dataloader, validation_dataloader, test_dataloader = load_celebA(
+    train_dataloader, validation_dataloader, test_dataloader = load_images(
             config['img_size'], 
-            0, 
-            0, 
-            config['batch_size']
-        )
+            config['validation_ratio'], 
+            config['test_ratio'], 
+            config['batch_size'],
+            config['dataset']
+    )
 
     vqvae_config = config['VQ-VAE']
     if 'version' in vqvae_config.keys() and vqvae_config['version'] == 2:

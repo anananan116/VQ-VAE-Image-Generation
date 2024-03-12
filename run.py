@@ -1,4 +1,4 @@
-from data_utils.prepare_data import load_celebA
+from data_utils.prepare_data import load_images
 from autoencoders.VQ_VAE.VQ_VAE import VQ_VAE, VQ_VAE2
 from trainers.autoencoder_trainer import VQVAE_Trainer
 from yaml import safe_load
@@ -6,12 +6,13 @@ import argparse
 import torch
 
 def main(config):
-    train_dataloader, validation_dataloader, test_dataloader = load_celebA(
-        config['img_size'], 
-        config['validation_ratio'], 
-        config['test_ratio'], 
-        config['batch_size']
-    )
+    train_dataloader, validation_dataloader, test_dataloader = load_images(
+            config['img_size'], 
+            config['validation_ratio'], 
+            config['test_ratio'], 
+            config['batch_size'],
+            config['dataset']
+        )
     vqvae_config = config['VQ-VAE']
     if 'version' in vqvae_config.keys() and vqvae_config['version'] == 2:
         vqvae = VQ_VAE2(
