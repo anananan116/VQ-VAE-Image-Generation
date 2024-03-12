@@ -1,0 +1,23 @@
+#dataset settings
+dataset: both
+validation_ratio: 0.01
+test_ratio: 0.01
+img_size: 128
+batch_size: 512
+
+VQ-VAE:
+  version: 2
+  experiment_id: 21
+  count_low_usage: True
+  epochs: 400
+  lr: 0.0004
+  beta: 0.25
+  kernel_sizes:
+    - 3
+    - 3
+    - 3
+  res_layers: 3
+  latent_dimension: 128
+  code_book_size: 512
+  early_stop_patience: 20
+  lower_bound_factor: 160
