@@ -73,7 +73,7 @@ class VQVAE_Trainer():
             val_loss = self.validate(validation_loader, epoch)
             if val_loss < self.best_loss:
                 self.best_loss = val_loss
-                self.save_model('./results/best_model.pth')
+                self.save_model(f'./results/best_model_exp{self.exp_id}.pth')
                 self.patience_counter = 0
             else:
                 self.patience_counter += 1
@@ -82,7 +82,7 @@ class VQVAE_Trainer():
                     break
 
             if epoch % 5 == 0:
-                self.save_model(f'./results/model_epoch_{epoch}.pth')
+                self.save_model(f'./results/model_epoch_{epoch}_exp{self.exp_id}.pth')
 
     def validate(self, validation_loader, epoch):
         self.model.eval()
