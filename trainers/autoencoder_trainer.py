@@ -47,6 +47,7 @@ class VQVAE_Trainer():
                 data = data.to(self.device)
                 self.optimizer.zero_grad()
                 recon_x, quant_loss = self.model(data)
+                quant_loss = quant_loss.mean()
                 loss, rec_loss, quantization_loss = vae2_loss(recon_x, data, quant_loss, beta=self.beta)
                 loss.backward()
                 self.optimizer.step()
@@ -55,9 +56,11 @@ class VQVAE_Trainer():
                 train_rec_loss += rec_loss.item()
                 train_quantization_loss += quantization_loss.item()
                 if self.version == 1:
-                    count.append((self.model.quantization.cluster_size > 2.0).sum().item())
+                    count.append((self.model.quantization.cluster_size > self.model.quantization.pixels_each_batch/self.model.quantization.n_embed/16).sum().item())
                 else:
-                    count.append((self.model.quantization_bottom.cluster_size > 4.0).sum().item() + (self.model.quantization_top.cluster_size > 2.0).sum().item())
+                    top_limit = self.model.quantization_top.pixels_each_batch/self.model.quantization_top.n_embed/16
+                    bottom_limit = self.model.quantization_bottom.pixels_each_batch/self.model.quantization_bottom.n_embed/16
+                    count.append((self.model.quantization_bottom.cluster_size > top_limit).sum().item() + (self.model.quantization_bottom.cluster_size > bottom_limit).sum().item())
                 progress_bar.set_description(f"Epoch {epoch+1}, Loss: {(train_loss/batch_num):.4f}, Rec: {(train_rec_loss/batch_num):.4f}, quant: {(train_quantization_loss/batch_num):.4f}, count: {(sum(count)/len(count)):.4f}")
                 progress_bar.update(1)
             progress_bar.close()

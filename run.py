@@ -39,7 +39,6 @@ def main(config):
         vqvae = torch.nn.DataParallel(vqvae)
     trainer = VQVAE_Trainer(vqvae, vqvae_config)
     trainer.train(train_dataloader, validation_dataloader)
-    trainer.test(test_dataloader)
     
     
 if __name__ == "__main__":

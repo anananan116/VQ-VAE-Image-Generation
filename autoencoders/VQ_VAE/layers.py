@@ -106,9 +106,10 @@ class QuantizationLayer(torch.nn.Module):
         # self.register_buffer("embed", embed)
         self.register_buffer("cluster_size", torch.zeros(code_book_size))
         self.register_buffer("embed_avg", embed.clone())
+        self.pixels_each_batch = None
 
     def forward(self, x, count_low_usage = False):
-        pixels_each_batch = x.size(0) * x.size(2) * x.size(3)
+        self.pixels_each_batch = x.size(0) * x.size(2) * x.size(3)
         x = x.permute(0, 2, 3, 1).contiguous() #(B, H, W, C)
         flatten = x.reshape(-1, self.dim)
         if torch.norm(self.embed.data) == 0:
@@ -136,7 +137,7 @@ class QuantizationLayer(torch.nn.Module):
             )
             self.embed_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
             # reassign low usage entries
-            small_clusters = self.cluster_size < pixels_each_batch/self.n_embed/16
+            small_clusters = self.cluster_size < self.pixels_each_batch/self.n_embed/16
             n_small_clusters = small_clusters.sum().item()
             if n_small_clusters > 16:
                 random_indices = torch.randint(0, flatten.size(0), (n_small_clusters,))
