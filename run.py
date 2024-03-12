@@ -33,6 +33,10 @@ def main(config):
         )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     vqvae_config['device'] = device
+    if torch.cuda.device_count() > 1:
+        print(f"Using {torch.cuda.device_count()} GPUs!")
+        # Wrap the model with DataParallel
+        vqvae = torch.nn.DataParallel(vqvae)
     trainer = VQVAE_Trainer(vqvae, vqvae_config)
     trainer.train(train_dataloader, validation_dataloader)
     trainer.test(test_dataloader)

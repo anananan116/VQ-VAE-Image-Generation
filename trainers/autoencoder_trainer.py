@@ -71,7 +71,7 @@ class VQVAE_Trainer():
             val_loss = self.validate(validation_loader, epoch)
             if val_loss < self.best_loss:
                 self.best_loss = val_loss
-                torch.save(self.model.state_dict(), './results/best_model.pth')
+                self.save_model('./results/best_model.pth')
                 self.patience_counter = 0
             else:
                 self.patience_counter += 1
@@ -80,7 +80,7 @@ class VQVAE_Trainer():
                     break
 
             if epoch % 5 == 0:
-                torch.save(self.model.state_dict(), f'./results/model_epoch_{epoch}.pth')
+                self.save_model(f'./results/model_epoch_{epoch}.pth')
 
     def validate(self, validation_loader, epoch):
         self.model.eval()
@@ -107,19 +107,10 @@ class VQVAE_Trainer():
         self.writer.add_scalar('Epoch/val_quantization_loss', avg_quantization_loss, epoch)
         print(f'Epoch {epoch+1}, Val Loss: {avg_val_loss:.4f}, Rec: {avg_rec_loss:.4f}, Quant: {avg_quantization_loss:.4f}')
         return avg_rec_loss
-
-    def test(self, test_loader):
-        self.model.eval()
-        test_loss = 0.0
-        with torch.no_grad():
-            for data, _ in test_loader:
-                data = data.to(self.device)
-                if self.count_low_usage:
-                    recon_x, z_q, z, count = self.model(data, count_low_usage=self.count_low_usage)
-                else:
-                    recon_x, z_q, z = self.model(data)
-                _, loss, _ = vae_loss(recon_x, data, z, z_q)
-                test_loss += loss.item()
-
-        avg_test_loss = test_loss / len(test_loader)
-        print(f'Test rec Loss: {avg_test_loss}')
+    def save_model(self, path):
+        if isinstance(self.model, torch.nn.DataParallel):
+            # Save the original model which is accessible via model.module
+            torch.save(self.model.module.state_dict(), path)
+        else:
+            # Save the model directly if not using DataParallel
+            torch.save(self.model.state_dict(), path)
