@@ -22,7 +22,7 @@ class LayerPredictionModel(GPT2LMHeadModel):
             self.config.side**2, self.config.n_embd
         )
         positional_embedding.requires_grad_(False)
-        self.set_input_embeddings(positional_embedding)
+        self.transformer.wpe = positional_embedding
 
     def forward(self, **kwargs):
         kwargs["input_ids"] = torch.cat(
