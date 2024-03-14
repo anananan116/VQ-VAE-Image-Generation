@@ -4,7 +4,8 @@ from yaml import safe_load
 import argparse
 import torch
 from transformers import GPT2Config, T5Config
-from prior_models.GPT_T5 import GPTTopLayer, T5BottomLayer
+from prior_models.GPT import GPTLayer
+from prior_models.T5 import T5Layer
 
 
 def main(config):
@@ -13,11 +14,11 @@ def main(config):
         config['batch_size']
     )
     if config['hier'] == 'top':
-        GPT_config = GPT2Config(vocab_size=config['top_vocab_size'], n_embd=config['top_n_embd'])
-        model = GPTTopLayer(GPT_config)
+        GPT_config = GPT2Config(vocab_size=config['vocab_size'], n_embd=config['n_embd'], side=config['side'])
+        model = GPTLayer(GPT_config)
     else:
-        T5_config = T5Config(vocab_size=config['bottom_vocab_size'])
-        model = T5BottomLayer(T5_config, n_embd=config['bottom_n_embd'])
+        T5_config = T5Config(vocab_size=config['vocab_size'], side=config['side'])
+        model = T5Layer(T5_config)
 
     if torch.cuda.device_count() > 1:
         print(f"Using {torch.cuda.device_count()} GPUs!")
