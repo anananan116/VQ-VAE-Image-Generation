@@ -79,7 +79,7 @@ class pixelSNAIL_Trainer():
                     print("Early stopping triggered.")
                     break
 
-            if epoch % 25 == 0:
+            if epoch % 5 == 0:
                 if isinstance(self.model, torch.nn.DataParallel):
                     # Save the original model which is accessible via model.module
                     torch.save(self.model.module.state_dict(), f'./results/best_model_{self.hier}.pth')

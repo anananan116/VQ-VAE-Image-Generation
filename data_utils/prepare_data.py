@@ -42,14 +42,16 @@ def load_images(img_size, validation_ratio, test_ratio, batch_size, dataset_name
 
     return train_dataloader, validation_dataloader, test_dataloader
 
-def load_latent_code(validation_ratio, batch_size):
+def load_latent_code(validation_ratio, batch_size, for_transformer=False, hier = None):
     top_codes = np.load("t_codes.npy").astype(np.int64)
     bottom_codes = np.load("b_codes.npy").astype(np.int64)
-    dataset = latentDataset(top_codes, bottom_codes)
+    dataset = latentDataset(top_codes, bottom_codes, for_transformer=for_transformer, hier=hier)
     dataset_size = len(dataset)
     validation_size = int(validation_ratio * dataset_size)
     train_size = dataset_size - validation_size
-    train_dataset, validation_dataset = random_split(dataset, [train_size, validation_size], generator=torch.Generator().manual_seed(42))
+    train_dataset, validation_dataset = random_split(dataset, [train_size, validation_size], generator=torch.Generator().manual_seed(43))
+    if batch_size == 0:
+        return train_dataset, validation_dataset
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
     return train_dataloader, val_dataloader

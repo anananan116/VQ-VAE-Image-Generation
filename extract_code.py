@@ -1,6 +1,7 @@
 from data_utils.prepare_data import load_images
 from autoencoders.VQ_VAE.VQ_VAE import VQ_VAE,VQ_VAE2
 from trainers.autoencoder_trainer import VQVAE_Trainer
+from tqdm import tqdm
 from yaml import safe_load
 import argparse
 import torch
@@ -12,7 +13,7 @@ def extract(model, dataloader):
     t_codes = []
     b_codes = []
     with torch.no_grad():
-        for data in dataloader:
+        for data in tqdm(dataloader):
             b_code, t_code = model.encode_to_id(data.to(device))
             t_code = t_code.cpu().numpy()
             b_code = b_code.cpu().numpy()
@@ -26,15 +27,15 @@ def extract(model, dataloader):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--config', type=str, default="./configs/default.yaml", help="Path to the config file")
+    argparser.add_argument('--config', type=str, default="./configs/default_all256.yaml", help="Path to the config file")
     args = argparser.parse_args()
     config = safe_load(open(args.config))
     train_dataloader, validation_dataloader, test_dataloader = load_images(
-            config['img_size'], 
-            config['validation_ratio'], 
-            config['test_ratio'], 
-            config['batch_size'],
-            config['dataset']
+        config['img_size'], 
+        config['validation_ratio'], 
+        config['test_ratio'], 
+        config['batch_size'],
+        'both'
     )
 
     vqvae_config = config['VQ-VAE']
@@ -44,7 +45,8 @@ if __name__ == "__main__":
             vqvae_config['latent_dimension'], 
             vqvae_config['kernel_sizes'], 
             vqvae_config['res_layers'], 
-            vqvae_config['code_book_size']
+            vqvae_config['code_book_size'],
+            vqvae_config['lower_bound_factor']
         )
     else:
         vqvae_config['version'] = 1
@@ -59,7 +61,7 @@ if __name__ == "__main__":
     vqvae_config['device'] = device
 
 
-    checkpoint = torch.load('./results/best_model.pth')
+    checkpoint = torch.load('./results/best_model_exp22.pth')
     vqvae.load_state_dict(checkpoint)
     vqvae.to(device)
     extract(vqvae, train_dataloader)

@@ -16,25 +16,25 @@ class LayerPredictionModel(GPT2LMHeadModel):
         # NOTE: Do not use input any sequence longer than `side ** 2`` tokens.
         # The positional embedding for longer sequences do not make sense at all.
         positional_embedding = nn.Embedding(self.config.n_positions, self.config.n_embd)
-        positional_embedding.weight.data[1 : 1 + config.side**2] = PositionalEncoding2D(
+        positional_embedding.weight.data[1: config.side**2+1] = (PositionalEncoding2D(
             self.config.n_embd
-        )(torch.empty(1, config.side, config.side, config.n_embd)).view(
+        )(torch.empty(1, config.side, config.side, config.n_embd))).view(
             self.config.side**2, self.config.n_embd
         )
-        positional_embedding.requires_grad_(False)
+        positional_embedding.requires_grad_(True)
         self.transformer.wpe = positional_embedding
 
-    def forward(self, **kwargs):
-        kwargs["input_ids"] = torch.cat(
-            [torch.zeros_like(kwargs["input_ids"][:, :1]), kwargs["input_ids"]],
-            dim=1,
-        )
-        kwargs["labels"] = torch.cat(
-            [kwargs["input_ids"][:, 1:], torch.ones_like(kwargs["input_ids"][:, :1])],
-            dim=1,
-        )
+    # def forward(self, **kwargs):
+    #     kwargs["input_ids"] = torch.cat(
+    #         [torch.zeros_like(kwargs["input_ids"][:, :1]), kwargs["input_ids"]],
+    #         dim=1,
+    #     )
+    #     kwargs["labels"] = torch.cat(
+    #         [kwargs["input_ids"][:, 1:], torch.ones_like(kwargs["input_ids"][:, :1])],
+    #         dim=1,
+    #     )
 
-        return super().forward(**kwargs)
+    #     return super().forward(**kwargs)
 
 
 class LayerDataset(Dataset):

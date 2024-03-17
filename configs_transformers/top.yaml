@@ -1,0 +1,33 @@
+resolution: 32
+hier: top
+validation_ratio: 0.005
+num_eval_per_epoch: 10
+trainer:
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  num_train_epochs: 30
+  learning_rate: 0.0005
+  weight_decay: 0.001
+  fp16: True
+  output_dir: ./results_top
+  evaluation_strategy: steps
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.1
+  logging_dir: ./logs_top
+  logging_strategy: steps
+  save_strategy: epoch
+  logging_steps: 10
+  gradient_accumulation_steps: 6
+
+model:
+  vocab_size: 514
+  n_positions: 1026
+  n_embd: 1024
+  n_layer: 16
+  n_head: 16
+  resid_pdrop: 0.15
+  embd_pdrop: 0.15
+  attn_pdrop: 0.15
+  bos_token_id: 512
+  eos_token_id: 513
+  side: 32
